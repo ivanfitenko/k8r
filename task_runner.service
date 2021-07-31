@@ -1,0 +1,20 @@
+### BEGIN INIT INFO
+# Provides:          certbot-watcher
+# Required-Start:    $local_fs $remote_fs
+# Required-Stop:     $local_fs $remote_fs
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: k8s nodes maintenance script
+# Description:       run maintenance tasks on k8s nodes
+### END INIT INFO
+
+[Unit]
+Description="Tool to run maintenance tasks on k8s nodes"
+Requires=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/task_runner.sh
+StandardOutput=file:/var/log/task_runner.log
+StandardError=file:/var/log/task_runner.log
