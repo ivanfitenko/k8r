@@ -122,6 +122,8 @@ cat <<EOF | tee /etc/apt/sources.list.d/kubernetes.list
 deb https://apt.kubernetes.io/ kubernetes-xenial main
 EOF
 apt-get update
+# somehow, the first apt-get update always fails on k8s 1.22.1, so retry
+apt-get update
 # than -00 suffix is something that all packages have, so treat it as magic number
 apt-get install -y kubelet=${K8S_VERSION}-00 kubeadm=${K8S_VERSION}-00 kubectl=${K8S_VERSION}-00
 apt-mark hold kubelet kubeadm kubectl
