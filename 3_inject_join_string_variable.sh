@@ -5,7 +5,7 @@ source variables.cfg
 if [ "$KUBEADM_JOIN_STRING" != "" ] ; then
   echo "KUBEADM_JOIN_STRING in variables,cfg is set. Injecting it into image."
 else
-  echo "ERROR: KUBEADM_JOIN_STRING not set in  variables,cfg is set."
+  echo "ERROR: KUBEADM_JOIN_STRING not set in variables,cfg."
   echo "ERROR: Please set it and re-run the script."
   exit 1
 fi
