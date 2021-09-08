@@ -39,3 +39,10 @@ cp -f tasks/* $TEMP_DIR/usr/lib/k8r/tasks/
 cp -f variables.cfg $TEMP_DIR/usr/lib/k8r/variables.cfg
 umount $TEMP_DIR
 rmdir $TEMP_DIR
+
+echo "Shrinking image to $IMAGE_SPACE_USED megabytes plus 50M reserve"
+e2fsck -yf images/image.img
+IMAGE_BLOCK_SIZE=`dumpe2fs -h images/image.img 2>/dev/null | grep 'Block size' | awk {'print $NF'}`
+IMAGE_MIN_SIZE=`resize2fs -P images/image.img | tail -n 1 | awk {'print $NF'}`
+IMAGE_SIZE_TARGET=`echo $IMAGE_MIN_SIZE+50*1024/$IMAGE_BLOCK_SIZE | bc`
+resize2fs images/image.img ${IMAGE_SIZE_TARGET}
