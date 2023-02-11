@@ -10,10 +10,7 @@ export PATH=/sbin:/usr/sbin:/usr/local/sbin:$PATH
 
 source ./variables.cfg
 
-# never set DEVICE from configuration, as it may change over attachments
-#if [ -z "$DEVICE" -o -z "$IMAGE" -o -z "$K8S_VERSION" ] ; then
-DEVICE="none"
-while [ "$DEVICE" = "none" ] ; do
+while [ -z "$DEVICE" ] ; do
   echo "Enter device to use (e.g. /dev/sdc, /dev/mmcblk1...)"
   read DEVICE
   echo "Checking device $DEVICE..."
