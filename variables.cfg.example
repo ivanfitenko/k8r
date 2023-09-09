@@ -1,0 +1,52 @@
+# Filename of original vendor's OS image to be used for all the nodes.
+# MUST be present under current directory
+# Example:
+#IMAGE=ubuntu-22.04.2-preinstalled-server-arm64+raspi.img
+IMAGE=
+
+#K8S version to use
+K8S_VERSION=1.28.1
+
+#While not mandatory, it is a good idea to have a DNS name or at least a fixed
+#IP-address associated with your master's MAC address. Otherwise, when your
+#master's address changes, you will have to manually rejoin all nodes to master
+#at its new IP.
+#IMPORTANT: the DNS and/or IP address must be assigned to the master BEFORE
+#the node is first bootstrapped.
+#Example:
+#CONTROL_PLANE_ENDPOINT="cluster.local"
+CONTROL_PLANE_ENDPOINT=
+
+#TTL of kubeadm's bootstrap token used by nodes to initially join the cluster.
+#Set to 0 to never expire.
+#Example: TOKEN_TTL="24h0m0s".
+TOKEN_TTL=0
+
+#IP prefix for all pods in the Kubernetes cluster. This range must not overlap
+#with other prefixes on your local network.
+POD_NETWORK_CIDR="172.30.0.0/16"
+
+#CNI to use. You can use "calico", "weave" of "flannel". Only calico seems to
+#work out of the box for all uses. Weave-net and flannel have issues that have
+#resolved yet.
+CNI_TYPE="calico"
+#Use specific calico version (no "v" prefix).
+#By default, v3.25.1 is used if the variable is not set.
+#CALICO_VERSION="3.25.1"
+
+#A command for the nodes to join master. When a master node is bootstrapped,
+#it will be written to file /usr/lib/k8r/join_string . You need to set it as
+#a value here before building an image for worker nodes.
+KUBEADM_JOIN_STRING=""
+
+#Optional setting to point the nodes to an HTTP repo where node images are
+#stored. This is used for online upgrade process.
+# Example:
+#HTTP_IMAGE_URL="http://1.1.1.1:2080/k8r_images/$K8S_VERSION/images/"
+HTTP_IMAGE_URL=
+
+#Optional setting to make the nodes use some docker registry without encryption
+#and authentication. Useful if you have a private registry on your network.
+# Example:
+#INSECURE_REGISTRY="1.1.1.1:5000"
+INSECURE_REGISTRY=
