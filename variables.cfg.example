@@ -26,9 +26,10 @@ TOKEN_TTL=0
 #with other prefixes on your local network.
 POD_NETWORK_CIDR="172.30.0.0/16"
 
-#CNI to use. You can use "calico", "weave" of "flannel". Only calico seems to
-#work out of the box for all uses. Weave-net and flannel have issues that have
-#resolved yet.
+# CNI to use, "calico", "weave" of "flannel". Only calico seems to work out of 
+# the box for all uses. Flannel has issues that have not been resolved
+# yet and might not work for you. Weave net has changed its installation process
+# and is therefore broken now.
 CNI_TYPE="calico"
 #Use specific calico version (no "v" prefix).
 #By default, v3.25.1 is used if the variable is not set.
