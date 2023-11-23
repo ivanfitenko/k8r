@@ -1,5 +1,6 @@
 # Filename of original vendor's OS image to be used for all the nodes.
-# MUST be present under current directory
+# MUST be present under current directory, must be an uncompressed image (not
+# img.xz).
 # Example:
 #IMAGE=ubuntu-22.04.2-preinstalled-server-arm64+raspi.img
 IMAGE=

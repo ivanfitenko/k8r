@@ -7,7 +7,9 @@ UBUNTU_CONTAINER_VERSION="23.04"
 
 # For non-arm64 arch, add a wrapper container with qemu handlers for arm64
 # Once containerized, "in_arm64_container" flag is set to go to further steps
-if [ "`uname -m`" != "arm64" -a "`echo $@ | grep in_arm64_container`" = "" ] ; then
+if [ "`uname -m`" != "arm64" \
+      -a "`echo $@ | grep in_arm64_container`" = "" \
+      -a "`echo $@ | grep in_final_container`" = "" ] ; then
   echo "Wrapping build inside multiarch-enabled docker container"
   docker run \
     --privileged \
@@ -30,9 +32,9 @@ if [ "`uname -m`" != "arm64" -a "`echo $@ | grep in_arm64_container`" = "" ] ; t
 fi
 
 
-# Run all builds in docker. Flag "in_docker" is set to indicate that this step
-# was completed
-if [ "`echo $@ | grep in_docker`" = "" ] ; then
+# Run all builds in docker. Flag "in_final_container" is set to indicate that
+# this step was completed
+if [ "`echo $@ | grep in_final_container`" = "" ] ; then
   echo "Running build in docker container"
   docker run \
     --privileged \
@@ -43,7 +45,7 @@ if [ "`echo $@ | grep in_docker`" = "" ] ; then
     --rm \
     -it \
     arm64v8/ubuntu:$UBUNTU_CONTAINER_VERSION \
-    /bin/bash /k8r/build.sh in_docker $@
+    /bin/bash /k8r/build.sh in_final_container $@
   exit $?
 fi
 

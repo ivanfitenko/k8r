@@ -152,7 +152,7 @@ worker node to the cluster, depending on the node type.
 ## Settings
 
 `IMAGE` - Filename of original vendor's OS image to be used for all the nodes.
-MUST be present under current directory.
+MUST be present under current directory. Must be an uncompressed image.
 
 `K8S_VERSION` - K8S version to use in format of 1.2.3 (no 'v' prefix)
 
