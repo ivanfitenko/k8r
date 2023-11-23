@@ -1,12 +1,38 @@
 #!/bin/bash
 
-#FIXME: setup binfmt handlers for qemu. This must be done inside dind
-docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
-
 # Fail on any error. We don't want do break existing images
 set -e
 
-if [ "$1" != "main_section" ] ; then
+UBUNTU_CONTAINER_VERSION="23.04"
+
+# For non-arm64 arch, add a wrapper container with qemu handlers for arm64
+# Once containerized, "in_arm64_container" flag is set to go to further steps
+if [ "`uname -m`" != "arm64" -a "`echo $@ | grep in_arm64_container`" = "" ] ; then
+  echo "Wrapping build inside multiarch-enabled docker container"
+  docker run \
+    --privileged \
+    --cgroupns=host \
+    -v /sys/fs/cgroup:/sys/fs/cgroup:rw \
+    -v /dev:/dev \
+    -v `pwd`:/wrapper_k8r \
+    --rm \
+    -it \
+    ubuntu:$UBUNTU_CONTAINER_VERSION \
+      sh -c "\
+      cd /wrapper_k8r && \
+      apt -y update && \
+      bash ./install-docker.sh && \
+      apt -y install binfmt-support qemu-user-static && \
+      docker run --rm --privileged multiarch/qemu-user-static --reset -p yes && \
+      /bin/bash /wrapper_k8r/build.sh in_arm64_container "$@" \
+      "
+  exit $?
+fi
+
+
+# Run all builds in docker. Flag "in_docker" is set to indicate that this step
+# was completed
+if [ "`echo $@ | grep in_docker`" = "" ] ; then
   echo "Running build in docker container"
   docker run \
     --privileged \
@@ -16,12 +42,10 @@ if [ "$1" != "main_section" ] ; then
     -v `pwd`:/k8r \
     --rm \
     -it \
-    arm64v8/ubuntu \
-    /bin/bash /k8r/build.sh main_section mode=$1
+    arm64v8/ubuntu:$UBUNTU_CONTAINER_VERSION \
+    /bin/bash /k8r/build.sh in_docker $@
   exit $?
 fi
-
-MODE=`echo $1 | sed 's/mode=//g'`
 
 # the scripts are ran from project's directory, not some installation path
 cd `dirname $0`
@@ -44,6 +68,7 @@ if [ "`losetup`" != "" ] ; then
   exit 1
 fi
 
+# FIXME: unused at the moment.
 # inject variables.cfg into images. No other actions will be done
 if [ "$MODE" = "inject-config" ] ; then
   echo "Injecting variables into image images/image.img"
