@@ -62,13 +62,16 @@ fi
 # include sbin dirs, in particular, for parted
 export PATH=/sbin:/usr/sbin:/usr/local/sbin:$PATH
 
-if [ "`losetup`" != "" ] ; then
-  echo "Some files are already mounted with losetup command."
-  echo "This could be leftovers of a previous failed run of this script."
-  echo "Please check the output of 'losetup' command, detach the loopback"
-  echo "devices with 'losetup -d LOOPBACK_DEVICE_HERE' and re-run."
-  exit 1
-fi
+# Ensure that working files are not mounted from previous installations
+for files in images/bootable_image.img images/image.img images/boot.img ; do
+  if [ "`losetup | grep $files`" != "" ] ; then
+    echo "File $files is already mounted as loopback device."
+    echo "This could be leftovers of a previous failed run of this script."
+    echo "Please check the output of 'losetup' command, detach the loopback"
+    echo "devices with 'losetup -d LOOPBACK_DEVICE_HERE' and re-run."
+    exit 1
+  fi
+done
 
 # FIXME: unused at the moment.
 # inject variables.cfg into images. No other actions will be done
