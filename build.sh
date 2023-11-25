@@ -1,12 +1,40 @@
 #!/bin/bash
 
-#FIXME: setup binfmt handlers for qemu. This must be done inside dind
-docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
-
 # Fail on any error. We don't want do break existing images
 set -e
 
-if [ "$1" != "main_section" ] ; then
+UBUNTU_CONTAINER_VERSION="23.04"
+
+# For non-arm64 arch, add a wrapper container with qemu handlers for arm64
+# Once containerized, "in_arm64_container" flag is set to go to further steps
+if [ "`uname -m`" != "arm64" \
+      -a "`echo $@ | grep in_arm64_container`" = "" \
+      -a "`echo $@ | grep in_final_container`" = "" ] ; then
+  echo "Wrapping build inside multiarch-enabled docker container"
+  docker run \
+    --privileged \
+    --cgroupns=host \
+    -v /sys/fs/cgroup:/sys/fs/cgroup:rw \
+    -v /dev:/dev \
+    -v `pwd`:/wrapper_k8r \
+    --rm \
+    -it \
+    ubuntu:$UBUNTU_CONTAINER_VERSION \
+      sh -c "\
+      cd /wrapper_k8r && \
+      apt -y update && \
+      bash ./install-docker.sh && \
+      apt -y install binfmt-support qemu-user-static && \
+      docker run --rm --privileged multiarch/qemu-user-static --reset -p yes && \
+      /bin/bash /wrapper_k8r/build.sh in_arm64_container "$@" \
+      "
+  exit $?
+fi
+
+
+# Run all builds in docker. Flag "in_final_container" is set to indicate that
+# this step was completed
+if [ "`echo $@ | grep in_final_container`" = "" ] ; then
   echo "Running build in docker container"
   docker run \
     --privileged \
@@ -16,12 +44,10 @@ if [ "$1" != "main_section" ] ; then
     -v `pwd`:/k8r \
     --rm \
     -it \
-    arm64v8/ubuntu \
-    /bin/bash /k8r/build.sh main_section mode=$1
+    arm64v8/ubuntu:$UBUNTU_CONTAINER_VERSION \
+    /bin/bash /k8r/build.sh in_final_container $@
   exit $?
 fi
-
-MODE=`echo $1 | sed 's/mode=//g'`
 
 # the scripts are ran from project's directory, not some installation path
 cd `dirname $0`
@@ -36,14 +62,18 @@ fi
 # include sbin dirs, in particular, for parted
 export PATH=/sbin:/usr/sbin:/usr/local/sbin:$PATH
 
-if [ "`losetup`" != "" ] ; then
-  echo "Some files are already mounted with losetup command."
-  echo "This could be leftovers of a previous failed run of this script."
-  echo "Please check the output of 'losetup' command, detach the loopback"
-  echo "devices with 'losetup -d LOOPBACK_DEVICE_HERE' and re-run."
-  exit 1
-fi
+# Ensure that working files are not mounted from previous installations
+for files in images/bootable_image.img images/image.img images/boot.img ; do
+  if [ "`losetup | grep $files`" != "" ] ; then
+    echo "File $files is already mounted as loopback device."
+    echo "This could be leftovers of a previous failed run of this script."
+    echo "Please check the output of 'losetup' command, detach the loopback"
+    echo "devices with 'losetup -d LOOPBACK_DEVICE_HERE' and re-run."
+    exit 1
+  fi
+done
 
+# FIXME: unused at the moment.
 # inject variables.cfg into images. No other actions will be done
 if [ "$MODE" = "inject-config" ] ; then
   echo "Injecting variables into image images/image.img"

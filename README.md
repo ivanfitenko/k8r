@@ -152,7 +152,7 @@ worker node to the cluster, depending on the node type.
 ## Settings
 
 `IMAGE` - Filename of original vendor's OS image to be used for all the nodes.
-MUST be present under current directory.
+MUST be present under current directory. Must be an uncompressed image.
 
 `K8S_VERSION` - K8S version to use in format of 1.2.3 (no 'v' prefix)
 
@@ -215,6 +215,8 @@ contain both image.img.xz and boot.img.xz files.
 filesystems will be rewritten using an initial image, resulting in a fresh node.
 
 #### NOT intended for use by an operator:
+`install-docker.sh`: convenience script to install docker into build containers.
+Runs on build host.
 `bootstrap_image.sh`: runs basic software installation and configuration during
 build process. Runs on build host.
 `setup_partitions.sh`: creates required partitions inside image file. Runs on
