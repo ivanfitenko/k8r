@@ -22,9 +22,9 @@ reinitialized to its initial state with just a single command.
 ## Requirements
 
 ### Build Platform
-Linux or MacOS in arm64 or x86_64
-docker
-15G free space to contain initial, intermediate, and final images
+- Linux or MacOS on arm64 or x86_64
+- docker
+- 15G free space to contain initial, intermediate, and final images
 
 ### Nodes
 - Raspberri Pi 4b
@@ -36,9 +36,11 @@ docker
 Download a bootable Ubuntu image to be used as a base image for nodes. Latest
 LTS build for Raspberry Pi is the primary testing target here, so it shoud work
 best.
+
 Write your build configuration to variables.cfg file. Use variables.cfg.example
 file and "Settings" section for referrence. Minimum required settings are IMAGE
 and K8S_VERSION.
+
 While these two will allow you to build an image "just to give it a try", there
 is at least one more thing to configure if you plan to use your cluster for
 longer period of time. The cluster's certificates include IP address of master
@@ -47,6 +49,7 @@ address of master node changes, you might have to rebuild all the cluster certs
 and re-join the nodes. So it is strongly recommended that you create a static
 IP-to-MAC bidning in your DHCP server, and/or create a DNS name for your master
 node, and configure CONTROL_PLANE_ENDPOINT variable with this name.
+
 More useful settings to improve the cluster maintainability, like setting a
 non-default password for login user, can be found under "Settings" section.
 
@@ -54,27 +57,36 @@ non-default password for login user, can be found under "Settings" section.
 After you configured your variables.cfg, it is time to bootstrap your master
 node as the fist node in your cluster. If you are reusing variables.cfg from 
 another cluster, make sure that KUBEADM_JOIN_STRING is absent or set to empty.
+
 This is what tells the scripts that this is the first boot, and the SD card
 has to be partitioned for master-style layout, i.e. it should have an additional
 partition for master data.
+
 Build the image with
+```
 bash ./build.sh
+```
+
 Check the logs to make sure that all went well. There will be some errors caused
 by building it in docker+chroot - these will be followed by a message that the
 error can be safely ignored. Errors that do not have an explanation coming right
 after them may be a sign of a broken build. Please report them, or, even better,
 open a PR with a fix. Builds having such errors should not be used to update or
 install the nodes unless you know what you do.
+
 After a successful build, an image at `images/bootable_image.img` is ready to
 be flashed on an SD card and used to boot your master node.
 Bootup and initialization would take 5-15 minutes depending on the speed of
 your SD card and internet connection (you will be downloading images for control
 panel).
+
 After successfull boot, you will be able to log in to your new master node with
 the default user for your distriution (most likely "ubuntu"), and the default
 password (usually ubuntu), or your custom password if you set it.
+
 Check /var/log/kubeadm.log to make sure the installation went well and grab the
 admin context from /etd/kubernetes/admin.conf.
+
 A command to join new nodes to the cluster is stored at /usr/lib/k8r/join_string
 Update your variables.cfg file and set this command as a value of parameter
 KUBEADM_JOIN_STRING.
@@ -83,11 +95,13 @@ KUBEADM_JOIN_STRING.
 With KUBEADM_JOIN_STRING in variables.cfg file set to the value from previous
 step, re-run the build process by executing 
 bash ./build.sh
+
 This will build the image again with the new variables file (just injecting it
 is not implemented yet), creating a new images/bootable_image.img which you can
 use for initial bootstrap of the worker nodes, along with two more images, 
 `images/boot.img.xz` and `images/image.img.xz` which can be used to upgrade, as
 well as to downgrade the nodes.
+
 Now you can write bootable-image.img to SD cards of as many new nodes as you
 need, boot them, and have them joined your new cluster. Enjoy! :-)
 
@@ -99,7 +113,8 @@ nodes, of by having the nodes download the updated image from HTTP location.
 To upgrade the nodes using local images, transfer updated  images/boot.img.xz
 and images/image.img.xz so some location on the node, and write it to image
 partition with `update_image_partition.sh` script from `/usr/lib/k8r/tasks`
-directory, passing a directory where the images can be found as a parameter. 
+directory, passing a directory where the images can be found as a parameter.
+
 For example, if image.img.xz (boot.img.xz should be stored under the same
 location) can be found at `/home/ubuntu/new_images/image.img.xz` on the target
 node, then the command would look like this:
@@ -109,6 +124,7 @@ bash /usr/lib/k8r/tasks/update_image_partition.sh /home/ubuntu/new_images/
 
 To upgrade the node from images from an HTTP, location, you need to have a
 variable HTTP_IMAGE_URL set to proper location in your `variables.cfg` file.
+
 This can be preconfigured during the build step, and you can change it or set
 it on the target node anytime by editing `/usr/lib/k8s/variables.cfg` file.
 As an example, if you have your image.img.xz (same for boot.img.xz) available
@@ -211,19 +227,25 @@ various scripts
 without parameters, will try to download an image from HTTP_IMAGE_URL. To use
 an image from a local FS, use directory path as a parameter. The directory must
 contain both image.img.xz and boot.img.xz files.
+
 `set_reinstall_mode.sh` - restart and reinstall the node. Boot and root
 filesystems will be rewritten using an initial image, resulting in a fresh node.
 
 #### NOT intended for use by an operator:
 `install-docker.sh`: convenience script to install docker into build containers.
 Runs on build host.
+
 `bootstrap_image.sh`: runs basic software installation and configuration during
 build process. Runs on build host.
+
 `setup_partitions.sh`: creates required partitions inside image file. Runs on
 build host.
+
 `reboot.sh`: utility wrapper used by task_runner's scripts to reboot the node.
+
 `setup_node.sh`: run minimal preparations on the node during install process and
 trigger an appropriate next phase
+
 `bootstrap_master.sh`: if node is expected to be a master, configure and start
 k8s control plane
 
