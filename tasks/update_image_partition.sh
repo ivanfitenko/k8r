@@ -16,15 +16,6 @@ if [ "$HTTP_IMAGE_URL" = "" -a "$LOCAL_IMAGE_PATH" = "" ] ; then
   exit 1
 fi
 
-if [ "$LOCAL_IMAGE_PATH" != "" ] ; then 
-  if [ ! -r "$LOCAL_IMAGE_PATH"/image.img.xz ] ; then
-    echo "ERROR: cannot read local image $LOCAL_IMAGE_PATH/image.img.xz. Exiting."
-  elif [ ! -r "$LOCAL_IMAGE_PATH"/boot.img.xz ] ; then
-    echo "ERROR: cannot read local boot image $LOCAL_IMAGE_PATH/boot.img.xz. Exiting."
-    exit 1
-  fi
-fi
-
 ALL_DEV="`blkid`"
 BOOT_DEV=`echo "$ALL_DEV" | grep 'LABEL="system-boot"'| head -n 1  | awk -F':' {'print $1'} `
 IMAGE_DEV=`echo "$ALL_DEV" | grep 'LABEL="image"'| head -n 1  | awk -F':' {'print $1'} `
@@ -36,18 +27,31 @@ if [ "$LOCAL_IMAGE_PATH" = "" ] ; then
   curl -Lo /boot.img.xz $HTTP_IMAGE_URL/boot.img.xz
   echo "Downloading image from $HTTP_IMAGE_URL"
   curl -Lo /image.img.xz $HTTP_IMAGE_URL/image.img.xz
-  #FIXME: The below writing options are duplicate: with empty $LOCAL_IMAGE_PATH
-  #FIXME: they would be the same. Join these operations.
-  echo "Writing boot image to boot partition $BOOT_DEV"
-  unxz -v --stdout /boot.img.xz | dd of=$BOOT_DEV bs=100M
-  echo "Writing image to image partition $IMAGE_DEV"
-  unxz -v --stdout /image.img.xz | dd of=$IMAGE_DEV bs=100M
-else
-  echo "Writing image $LOCAL_IMAGE_PATH/boot.img.xz to image partition $BOOT_DEV"
-  unxz -v --stdout $LOCAL_IMAGE_PATH/boot.img.xz | dd of=$BOOT_DEV bs=100M
-  echo "Writing image $LOCAL_IMAGE_PATH/image.img.xz to image partition $IMAGE_DEV"
-  unxz -v --stdout $LOCAL_IMAGE_PATH/image.img.xz | dd of=$IMAGE_DEV bs=100M
 fi
+
+if [ ! -r "$LOCAL_IMAGE_PATH"/image.img.xz ] ; then
+  echo "ERROR: cannot read local installation image $LOCAL_IMAGE_PATH/image.img.xz. Exiting."
+  exit 1
+fi
+if  ! xz -t $LOCAL_IMAGE_PATH/image.img.xz ; then
+  echo "ERROR: local installation image $LOCAL_IMAGE_PATH/image.img.xz is not an xz archive. Exiting."
+  exit 1
+fi
+if [ ! -r "$LOCAL_IMAGE_PATH"/boot.img.xz ] ; then
+  echo "ERROR: cannot read local boot image $LOCAL_IMAGE_PATH/boot.img.xz. Exiting."
+exit 1
+fi
+if  ! xz -t $LOCAL_IMAGE_PATH/boot.img.xz  ; then
+  echo "ERROR: local boot image $LOCAL_IMAGE_PATH/boot.img.xz is not an xz archive. Exiting."
+  exit 1
+fi
+
+# Remote images are downloaded to / when LOCAL_IMAGE_PATH is empty, so the
+# following extraction procedure works for both local and remote cases.
+echo "Writing image $LOCAL_IMAGE_PATH/boot.img.xz to image partition $BOOT_DEV"
+unxz -v --stdout $LOCAL_IMAGE_PATH/boot.img.xz | dd of=$BOOT_DEV bs=100M
+echo "Writing image $LOCAL_IMAGE_PATH/image.img.xz to image partition $IMAGE_DEV"
+unxz -v --stdout $LOCAL_IMAGE_PATH/image.img.xz | dd of=$IMAGE_DEV bs=100M
 
 echo "Verifying FS at target partitions $BOOT_DEV"
 fsck.vfat -a $BOOT_DEV || true

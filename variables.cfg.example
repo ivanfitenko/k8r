@@ -2,11 +2,11 @@
 # MUST be present under current directory, must be an uncompressed image (not
 # img.xz).
 # Example:
-#IMAGE=ubuntu-22.04.2-preinstalled-server-arm64+raspi.img
+#IMAGE=ubuntu-22.04.4-preinstalled-server-arm64+raspi.img
 IMAGE=
 
 #K8S version to use
-K8S_VERSION=1.28.1
+K8S_VERSION=1.29.1
 
 #While not mandatory, it is a good idea to have a DNS name or at least a fixed
 #IP-address associated with your master's MAC address. Otherwise, when your

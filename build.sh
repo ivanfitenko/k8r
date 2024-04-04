@@ -145,7 +145,18 @@ else
 fi
 sed -i 's#ubuntu:!#ubuntu:'$PASSWD_HASH'#g' $K8R_IMAGE_MOUNT_DIR/etc/shadow
 echo "Enabling password authentication via ssh"
-sed -i 's/PasswordAuthentication no/PasswordAuthentication yes/g' $K8R_IMAGE_MOUNT_DIR/etc/ssh/sshd_config
+sed -i 's/^PasswordAuthentication no\ *$/PasswordAuthentication yes /g' $K8R_IMAGE_MOUNT_DIR/etc/ssh/sshd_config
+if [ "`grep -E '^PasswordAuthentication' $K8R_IMAGE_MOUNT_DIR/etc/ssh/sshd_config`" = "" ] ; then
+  echo "No previous setting for Password Authentication was found. Adding now."
+  echo >> $K8R_IMAGE_MOUNT_DIR/etc/ssh/sshd_config
+  echo 'PasswordAuthentication yes' >> $K8R_IMAGE_MOUNT_DIR/etc/ssh/sshd_config
+fi
+ADDITIONAL_SSH_PASSWORD_CONFIG="`grep -ElR PasswordAuthentication $K8R_IMAGE_MOUNT_DIR/etc/ssh/sshd_config.d/`"
+if [ "$ADDITIONAL_SSH_PASSWORD_CONFIG" != "" ] ; then
+  echo "Additional ssh password login config found in $ADDITIONAL_SSH_PASSWORD_CONFIG"
+  echo "Removing the directive."
+  sed -i 's/^PasswordAuthentication.*//g' $ADDITIONAL_SSH_PASSWORD_CONFIG
+fi
 
 # FIXME: if the kernel gets updated by the script below (it shouldn't), then
 # FIXME: firmware updates will NOT be included into bootable_image.img
