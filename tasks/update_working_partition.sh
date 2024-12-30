@@ -1,10 +1,5 @@
 #!/bin/bash
 
-if [ ! -r /boot.img.xz ] ; then
-  echo "Firmware/efi FS image file /boot.img.xz not found. Aborting installation."
-  exit 1
-fi
-
 if [ ! -r /image.img.xz ] ; then
   echo "Root FS image file /image.img.xz not found. Aborting installation."
   exit 1
@@ -43,9 +38,6 @@ echo "fixing FS at target partition $WORKING_PARTITION"
 e2fsck -yf $WORKING_PARTITION || true
 echo "Resizing fs on working partition $WORKING_PARTITION to all available space"
 resize2fs $WORKING_PARTITION
-echo "Setting boot target to working partition $WORKING_PARTITION"
-e2label $WORKING_PARTITION writable
-e2label $IMAGE_PARTITION image
 
 TEMP_DIR=`mktemp -d`
 mount $WORKING_PARTITION $TEMP_DIR
@@ -64,3 +56,7 @@ umount $TEMP_DIR
 echo "Checking fs on updated working partition."
 # e2fsck will return error when fixing a corrupted FS, so need to suppress it
 e2fsck -yf $WORKING_PARTITION || true
+
+echo "Setting boot target to working partition $WORKING_PARTITION"
+e2label $WORKING_PARTITION writable
+e2label $IMAGE_PARTITION image

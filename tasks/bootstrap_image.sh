@@ -56,6 +56,8 @@ echo "Setting DEBIAN_FRONTEND=noninteractive to run in unattended manner"
 export DEBIAN_FRONTEND=noninteractive
 echo "Removing cloud-initramfs-tools (bug #1967593 on launchpad)"
 apt -y -o=Dpkg::Use-Pty=0 remove cloud-initramfs-copymods
+echo "Installing dosfstools to handle boot/firmware partition"
+apt -y -o=Dpkg::Use-Pty=0 install dosfstools
 echo "Installing containerd"
 apt -y -o=Dpkg::Use-Pty=0 install containerd
 echo "Configuring containerd. Errors related to /proc/cpuinfo can be safely ignored."

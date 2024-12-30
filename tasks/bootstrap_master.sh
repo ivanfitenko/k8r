@@ -153,9 +153,14 @@ case "$CNI_TYPE" in
     ;;
 esac
 
-echo "Master initialized, stopping kubelet and containerd for post-install tasks"
+echo "Master initialized"
+
+# Kubelet would try to restart stopped API server and etcd, so need to stop it
+# first.
+echo "Stopping kubelet and killing apiserver and etcd for data migrations."
 systemctl stop kubelet.service
-systemctl stop containerd.service
+pkill kube-apiserver
+pkill etcd
 
 if [ "$FRESH_INSTALLATION" = "0" ] ; then
   echo "Replacing pki and etcd directories with links to persistent storage"
@@ -189,8 +194,7 @@ fi
 
 echo "Mounting persistent master data parttition if it was previously unmounted"
 mount /master_persistent || true
-echo "Starting containerd and kubelet to run kubernetes master."
-systemctl start containerd.service
+echo "Starting kubelet to relaunch etcd and kubernetes API server."
 systemctl start kubelet.service
 
 #Upgrade
@@ -238,10 +242,13 @@ if [ "$FRESH_INSTALLATION" != "1" ] ; then
       sleep 30
       K8S_MASTER_UNREADY_NODES=`kubectl get no | grep control-plane | grep NotReady | wc -l`
     done
+    # CreateJob check would make the whole upgrade process fail due to some
+    # non-fatal conditions, while such conditions could otherwise be addressed
+    # by automations during later stages. This check is now disabled.
     echo "Running kubeadm plan."
-    kubeadm upgrade plan v$KUBELET_VERSION
+    kubeadm upgrade plan v$KUBELET_VERSION --ignore-preflight-errors=CreateJob
     echo "Upgrading cluster to version $K8S_VERSION"
-    kubeadm upgrade apply v$KUBELET_VERSION -y
+    kubeadm upgrade apply v$KUBELET_VERSION -y --ignore-preflight-errors=CreateJob
   fi
 fi
 
