@@ -3,7 +3,7 @@
 # Fail on any error. We don't want do break existing images
 set -e
 
-UBUNTU_CONTAINER_VERSION="23.04"
+UBUNTU_CONTAINER_VERSION="24.04"
 
 # For non-arm64 arch, add a wrapper container with qemu handlers for arm64
 # Once containerized, "in_arm64_container" flag is set to go to further steps
@@ -69,7 +69,15 @@ for files in images/bootable_image.img images/image.img images/boot.img ; do
     echo "This could be leftovers of a previous failed run of this script."
     echo "Please check the output of 'losetup' command, detach the loopback"
     echo "devices with 'losetup -d LOOPBACK_DEVICE_HERE' and re-run."
-    exit 1
+    echo "I can automatically detach ALL of the listed (DANGEROUS):"
+    losetup
+    echo "Approve (yes/NO):"
+    read answ
+    if [ "$answ" = "yes" ] ; then
+      losetup -D
+    else
+      exit 1
+    fi
   fi
 done
 
@@ -91,8 +99,9 @@ if [ "$MODE" = "inject-config" ] ; then
 fi
 
 echo "Installing dependencies"
+export DEBIAN_FRONTEND=noninteractive
 apt -y update
-apt -y install parted udev whois xz-utils bc
+apt -y install parted udev whois xz-utils bc dosfstools
 
 echo "Partitions on image $IMAGE:"
 parted -s $IMAGE print
@@ -143,6 +152,7 @@ else
   echo "Using password hash from file \"password_hash\""
   PASSWD_HASH=`cat password_hash`
 fi
+
 sed -i 's#ubuntu:!#ubuntu:'$PASSWD_HASH'#g' $K8R_IMAGE_MOUNT_DIR/etc/shadow
 echo "Enabling password authentication via ssh"
 sed -i 's/^PasswordAuthentication no\ *$/PasswordAuthentication yes /g' $K8R_IMAGE_MOUNT_DIR/etc/ssh/sshd_config
@@ -151,7 +161,7 @@ if [ "`grep -E '^PasswordAuthentication' $K8R_IMAGE_MOUNT_DIR/etc/ssh/sshd_confi
   echo >> $K8R_IMAGE_MOUNT_DIR/etc/ssh/sshd_config
   echo 'PasswordAuthentication yes' >> $K8R_IMAGE_MOUNT_DIR/etc/ssh/sshd_config
 fi
-ADDITIONAL_SSH_PASSWORD_CONFIG="`grep -ElR PasswordAuthentication $K8R_IMAGE_MOUNT_DIR/etc/ssh/sshd_config.d/`"
+ADDITIONAL_SSH_PASSWORD_CONFIG="`grep -ElR PasswordAuthentication $K8R_IMAGE_MOUNT_DIR/etc/ssh/sshd_config.d/ || true`"
 if [ "$ADDITIONAL_SSH_PASSWORD_CONFIG" != "" ] ; then
   echo "Additional ssh password login config found in $ADDITIONAL_SSH_PASSWORD_CONFIG"
   echo "Removing the directive."
@@ -170,9 +180,25 @@ if [ "`mount | grep resolv.conf`" != "" ] ; then
   mv $K8R_IMAGE_MOUNT_DIR/etc/resolv.conf.bak $K8R_IMAGE_MOUNT_DIR/etc/resolv.conf || true
 fi
 
-echo "Dumping efi and firmware partition to images/boot.img.xz for use in online upgrades."
-# don't use multithreading for xz here: it would just make it slower
-dd if=${DEVICEPART}1 status=progress | xz > images/boot.img.xz
+echo "Creating boot/firmware partition archive images/boot.tar.xz"
+tar -cJvf images/boot.tar.xz -C /mnt/boot .
+echo "WARNING"
+echo "WARNING: boot.img is deprecated and will not be built after version 1.31"
+echo "WARNING"
+echo "Building DEPRECATED images/boot.img"
+echo "Creating empty boot image with vfat FS"
+dd if=/dev/zero of=images/boot.img bs=200M count=1
+mkfs.vfat images/boot.img
+mkdir /mnt/bootimg
+mount -o loop images/boot.img /mnt/bootimg
+echo "Copying boot partition contents to boot image."
+cp -Ra /mnt/boot/* /mnt/bootimg/
+umount /mnt/bootimg
+echo "Cleanup: Removing previous images/boot.img.xz, if any"
+rm -f images/boot.img.xz
+echo "Compressing images/boot.img to images/boot.img.xz"
+xz -v -T0 images/boot.img
+
 echo "Dumping image partition to images/image.img for use in online upgrades."
 dd if=${DEVICEPART}2 of=images/image.img status=progress
 echo "Done"
@@ -187,8 +213,11 @@ resize2fs images/image.img ${IMAGE_SIZE_TARGET}
 # xz will not overwrite an existing image, need to clean up manually
 echo "Cleanup: Removing previous images/image.img.xz, if any"
 rm -f images/image.img.xz
+echo "Removing any labels from image.img to avoid boot conflicts on upgrade"
+e2label images/image.img ""
 echo "Compressing images/image.img to images/image.img.xz"
 xz -v -T0 images/image.img
+
 echo "Injecting boot.img.xz into bootable_image.img"
 cp images/boot.img.xz $K8R_IMAGE_MOUNT_DIR/
 echo "Injecting image.img.xz into bootable_image.img"
