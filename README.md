@@ -98,8 +98,8 @@ bash ./build.sh
 
 This will build the image again with the new variables file (just injecting it
 is not implemented yet), creating a new images/bootable_image.img which you can
-use for initial bootstrap of the worker nodes, along with two more images, 
-`images/boot.img.xz` and `images/image.img.xz` which can be used to upgrade, as
+use for initial bootstrap of the worker nodes, along with two more files,
+`images/boot.tar.xz` and `images/image.img.xz` which can be used to upgrade, as
 well as to downgrade the nodes.
 
 Now you can write bootable-image.img to SD cards of as many new nodes as you
@@ -110,12 +110,12 @@ need, boot them, and have them joined your new cluster. Enjoy! :-)
 Nodes can be upgraded in two ways: by copying updated images directly to the
 nodes, of by having the nodes download the updated image from HTTP location.
 
-To upgrade the nodes using local images, transfer updated  images/boot.img.xz
+To upgrade the nodes using local images, transfer updated  images/boot.tar.xz
 and images/image.img.xz so some location on the node, and write it to image
 partition with `update_image_partition.sh` script from `/usr/lib/k8r/tasks`
 directory, passing a directory where the images can be found as a parameter.
 
-For example, if image.img.xz (boot.img.xz should be stored under the same
+For example, if image.img.xz (boot.tar.xz should be stored under the same
 location) can be found at `/home/ubuntu/new_images/image.img.xz` on the target
 node, then the command would look like this:
 ```
@@ -127,7 +127,7 @@ variable HTTP_IMAGE_URL set to proper location in your `variables.cfg` file.
 
 This can be preconfigured during the build step, and you can change it or set
 it on the target node anytime by editing `/usr/lib/k8s/variables.cfg` file.
-As an example, if you have your image.img.xz (same for boot.img.xz) available
+As an example, if you have your image.img.xz (same for boot.tar.xz) available
 at http://example.com/my_images/image.img.xz, then the setting should say
 ```
 HTTP_IMAGE_URL="http://example.com/my_images/image.img.xz"
@@ -195,9 +195,9 @@ v3.25.1 is used if the variable is not set.
 node is bootstrapped, it will be written to file `/usr/lib/k8r/join_string`.
 You need to put this value here before building an image for worker nodes.
 
-`HTTP_IMAGE_URL` - URL prefix under which both image.img.xz and boot.img.xz can be
-found. For example, if you uploaded your files in a way that boot.img.xz can
-be downloaded from http://example.com/k8r/images/1.29.3/boot.img.xz, then this 
+`HTTP_IMAGE_URL` - URL prefix under which both image.img.xz and boot.tar.xz can
+be found. For example, if you uploaded your files in a way that boot.tar.xz can
+be downloaded from http://example.com/k8r/images/1.29.3/boot.tar.xz, then this 
 setting would be "http://example.com/k8r/images/1.29.3/"
 
 ## Files and locations
@@ -226,7 +226,7 @@ various scripts
 `update_image_partition.sh`: write K8S image files to image partition. If ran
 without parameters, will try to download an image from HTTP_IMAGE_URL. To use
 an image from a local FS, use directory path as a parameter. The directory must
-contain both image.img.xz and boot.img.xz files.
+contain both image.img.xz and boot.tar.xz files.
 
 `set_reinstall_mode.sh` - restart and reinstall the node. Boot and root
 filesystems will be rewritten using an initial image, resulting in a fresh node.
