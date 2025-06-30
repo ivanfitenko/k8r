@@ -6,7 +6,7 @@
 IMAGE=
 
 #K8S version to use
-K8S_VERSION=1.33.0
+K8S_VERSION=1.30.0
 
 #While not mandatory, it is a good idea to have a DNS name or at least a fixed
 #IP-address associated with your master's MAC address. Otherwise, when your

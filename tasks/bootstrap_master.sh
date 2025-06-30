@@ -33,7 +33,7 @@ KUBEADM_ARGS=$KUBEADM_ARGS" --ignore-preflight-errors=DirAvailable--var-lib-etcd
 
 echo "(re-)initializing emply configuration in /var/spool/k8r/kubeadm-config.yaml to use it as configuration source"
 echo "---
-apiVersion: kubeadm.k8s.io/v1beta4" > /var/spool/k8r/kubeadm-config.yaml
+apiVersion: kubeadm.k8s.io/v1beta3" > /var/spool/k8r/kubeadm-config.yaml
 
 KUBEADM_ARGS=$KUBEADM_ARGS" --config /var/spool/k8r/kubeadm-config.yaml"
 
@@ -67,7 +67,7 @@ echo "Creating bootstrap token with TTL $TOKEN_TTL"
 BOOTSTRAP_TOKEN="`openssl rand -hex 3`.`openssl rand -hex 8`"
 echo "---
 kind: InitConfiguration
-apiVersion: kubeadm.k8s.io/v1beta4
+apiVersion: kubeadm.k8s.io/v1beta3
 bootstrapTokens:
   - token: \"$BOOTSTRAP_TOKEN\"
     description: \"kubeadm bootstrap token\"
