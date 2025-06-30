@@ -63,7 +63,7 @@ fi
 export PATH=/sbin:/usr/sbin:/usr/local/sbin:$PATH
 
 # Ensure that working files are not mounted from previous installations
-for files in images/bootable_image.img images/image.img ; do
+for files in images/bootable_image.img images/image.img images/boot.img ; do
   if [ "`losetup | grep $files`" != "" ] ; then
     echo "File $files is already mounted as loopback device."
     echo "This could be leftovers of a previous failed run of this script."
@@ -182,6 +182,22 @@ fi
 
 echo "Creating boot/firmware partition archive images/boot.tar.xz"
 tar -cJvf images/boot.tar.xz -C /mnt/boot .
+echo "WARNING"
+echo "WARNING: boot.img is deprecated and will not be built after version 1.31"
+echo "WARNING"
+echo "Building DEPRECATED images/boot.img"
+echo "Creating empty boot image with vfat FS"
+dd if=/dev/zero of=images/boot.img bs=200M count=1
+mkfs.vfat images/boot.img
+mkdir /mnt/bootimg
+mount -o loop images/boot.img /mnt/bootimg
+echo "Copying boot partition contents to boot image."
+cp -Ra /mnt/boot/* /mnt/bootimg/
+umount /mnt/bootimg
+echo "Cleanup: Removing previous images/boot.img.xz, if any"
+rm -f images/boot.img.xz
+echo "Compressing images/boot.img to images/boot.img.xz"
+xz -v -T0 images/boot.img
 
 echo "Dumping image partition to images/image.img for use in online upgrades."
 dd if=${DEVICEPART}2 of=images/image.img status=progress
@@ -202,6 +218,8 @@ e2label images/image.img ""
 echo "Compressing images/image.img to images/image.img.xz"
 xz -v -T0 images/image.img
 
+echo "Injecting boot.img.xz into bootable_image.img"
+cp images/boot.img.xz $K8R_IMAGE_MOUNT_DIR/
 echo "Injecting image.img.xz into bootable_image.img"
 cp images/image.img.xz $K8R_IMAGE_MOUNT_DIR/
 
