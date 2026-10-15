@@ -27,6 +27,10 @@ journalctl --vacuum-size=1
 # Make things faster by stopping unattended-upgrades
 echo "Stopping unattended upgrade service. This may take a while"
 systemctl stop unattended-upgrades.service
+# Runs of unattended-upgrades service in recovery partition may result in
+# subsequent boots of the installed system into a kernel for which the image
+# didn't contain modules. Kubeadm won't be able to initialize.
+systemctl disable unattended-upgrades.service
 
 #FIXME: need to start snapd for the following to work. Snapd kinda suxxxx
 echo "Removing huge and unnescessary lxc and lxd snap packages"

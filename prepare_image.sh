@@ -5,6 +5,7 @@ echo "Adding 1510M disk space to image to accomodate added packages"
 dd if=/dev/zero bs=1510M count=1 >> images/bootable_image.img
 losetup -c $DEVICE
 echo "Resizing image partition to +1500M"
+
 IMAGE_PARTITION_END="`parted --machine ${DEVICEPART}2 unit MB print | tail -n 1 | awk -F':' {'print $3'} | sed 's/MB//g'`"
 IMAGE_PARTITION_TARGET=$((IMAGE_PARTITION_END+1500))
 parted --script -a opt $DEVICE resizepart 2 $IMAGE_PARTITION_TARGET
@@ -36,15 +37,17 @@ echo "when reinstalling OS on the same node."
 echo DUIDType=link-layer >> $K8R_IMAGE_MOUNT_DIR/etc/systemd/networkd.conf
 sync
 
-mount ${DEVICEPART}1 $K8R_IMAGE_MOUNT_DIR/boot
-echo "Enabling memory cgroup on boot"
-if  [ "`grep memory $K8R_IMAGE_MOUNT_DIR/boot/cmdline.txt`" = "" ] ; then
-  sed -i 's/.*/&\ cgroup_enable=memory/g' $K8R_IMAGE_MOUNT_DIR/boot/cmdline.txt
-fi
+# Deprecated: Memory cgroups are enabled by default on Ubuntu 26.04
+#mount ${DEVICEPART}1 $K8R_IMAGE_MOUNT_DIR/boot
+#echo "Enabling memory cgroup on boot"
+#if  [ "`grep memory $K8R_IMAGE_MOUNT_DIR/boot/cmdline.txt`" = "" ] ; then
+#  sed -i 's/.*/&\ cgroup_enable=memory/g' $K8R_IMAGE_MOUNT_DIR/boot/cmdline.txt
+#fi
 
 if [ "$K8R_IMAGE_MOUNT_DIR" = "" ] ; then
   echo "Umount and remove temporary mountpoint for image partitions"
-  umount $K8R_IMAGE_MOUNT_DIR/boot
+  # DEPRECATED: Used for deptecated operation above. Remove in the next version.
+  #umount $K8R_IMAGE_MOUNT_DIR/boot
   umount $K8R_IMAGE_MOUNT_DIR
   rmdir $K8R_IMAGE_MOUNT_DIR
   if [ "`echo $DEVICE | grep 'loop'`" != "" ] ; then
