@@ -31,6 +31,7 @@ sync
 
 # IMPORTANT: we are running on image partition, so disk labels are swapped
 echo "Writing updated image to working partition $WORKING_PARTITION"
+echo "Inital run may take up to 3 hours. It does not hang, just 500kbps on sdcard"
 #FIXME: direct FS copy should still be an emergency option
 #dd if=$IMAGE_PARTITION of=$WORKING_PARTITION bs=100M status=progress
 unxz -v --stdout /image.img.xz | dd of=$WORKING_PARTITION bs=100M

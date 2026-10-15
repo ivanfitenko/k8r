@@ -3,7 +3,7 @@
 # Fail on any error. We don't want do break existing images
 set -e
 
-UBUNTU_CONTAINER_VERSION="24.04"
+UBUNTU_CONTAINER_VERSION="26.04"
 
 # For non-arm64 arch, add a wrapper container with qemu handlers for arm64
 # Once containerized, "in_arm64_container" flag is set to go to further steps
@@ -144,7 +144,7 @@ if [ ! -r "$K8R_IMAGE_MOUNT_DIR/etc/resolv.conf" ] ; then
 fi
 
 echo "Adding user and setting password for user ubuntu"
-chroot $K8R_IMAGE_MOUNT_DIR /usr/bin/cloud-init single -n users_groups
+chroot $K8R_IMAGE_MOUNT_DIR /bin/bash -c "source /etc/profile && exec /usr/bin/cloud-init single -n users_groups"
 if [ ! -r password_hash ] ; then
   echo "File \"password_hash\" does not exist, using password \"ubuntu\""
   PASSWD_HASH=`echo ubuntu | mkpasswd  -m sha-512 -s`
