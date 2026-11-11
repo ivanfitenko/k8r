@@ -30,7 +30,12 @@ systemctl stop unattended-upgrades.service
 # Runs of unattended-upgrades service in recovery partition may result in
 # subsequent boots of the installed system into a kernel for which the image
 # didn't contain modules. Kubeadm won't be able to initialize.
-systemctl disable unattended-upgrades.service
+systemctl disable --now unattended-upgrades.service
+rm -f /etc/apt/apt.conf.d/*unattended-upgrades
+apt -y remove unattended-upgrades
+
+echo "Installing latest updates"
+apt -y update && apt -y upgrade
 
 #FIXME: need to start snapd for the following to work. Snapd kinda suxxxx
 echo "Removing huge and unnescessary lxc and lxd snap packages"
@@ -100,11 +105,6 @@ fi
 
 echo "Enabling systemd cgroup driver for containerd"
 sed -i 's/SystemdCgroup\ =.*/SystemdCgroup = true/g' /etc/containerd/config.toml
-echo "Setting pause container version to 3.9 vs default 3.6"
-# FIXME: see warning below
-echo "WARNING: if your ubuntu image is newer that 22.04, then this might actually"
-echo "WARNING: downgrade your pause image. In this case, the script needs to be fixed."
-sed -i 's/sandbox_image\ =.*/sandbox_image = \"registry.k8s.io\/pause:3.9\"/g' /etc/containerd/config.toml
 
 echo "Installing NFS client"
 apt -y -o=Dpkg::Use-Pty=0 install nfs-common

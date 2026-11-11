@@ -129,6 +129,10 @@ while [ "$TEST_K8S_VERSION" = "" ] ; do
   TEST_K8S_VERSION=`kubectl version | grep 'Server Version' | awk {'print $NF'} | sed 's/.*v//g'`
 done
 
+echo "Installing Gateway API"
+GATEWAY_API_VERSION=${GATEWAY_API_VERSION:-"1.6.1"}
+kubectl apply --server-side -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v$GATEWAY_API_VERSION/standard-install.yaml
+
 echo -n "Installing network addon: "
 case "$CNI_TYPE" in
   "flannel")
@@ -139,9 +143,8 @@ case "$CNI_TYPE" in
     echo "Using weave-net CNI"
     kubectl apply -f "https://cloud.weave.works/k8s/net?k8s-version=$(kubectl version | base64 | tr -d '\n')"
     ;;
-  *)
-    # By default, use calico CNI
-    echo "Using calico CNI (default)"
+  "calico")
+    echo "Using calico CNI"
     CALICO_VERSION=${CALICO_VERSION:-"3.25.1"}
     kubectl apply -f https://raw.githubusercontent.com/projectcalico/calico/v${CALICO_VERSION}/manifests/calico-typha.yaml
     echo "Allowing calico-node to run on master"
@@ -150,6 +153,30 @@ case "$CNI_TYPE" in
     kubectl patch deploy -n kube-system calico-typha --type='json' -p='[{"op": "add", "path": "/spec/template/spec/tolerations/-", "value": {"operator": Exists}}]'
     #echo "Using legacy iptables backend instead of BPF on arm64"
     #kubectl patch -n kube-system FelixConfiguration default --type='json' -p='[{"op": "add", "path": "/spec/iptablesBackend", "value": "Legacy"}]'
+    ;;
+  *)
+    # By default, use cilium CNI
+    echo "Using cilium CNI (default)"
+    API_SERVER_IP=`host $CONTROL_PLANE_ENDPOINT | awk {'print $NF'}`
+    API_SERVER_PORT=6443
+    CILIUM_VERSION=${CILIUM_VERSION:-"1.20.4"}
+    CILIUM_CLI_VERSION=$(curl -s https://raw.githubusercontent.com/cilium/cilium-cli/main/stable.txt)
+    curl -L --fail --remote-name-all https://github.com/cilium/cilium-cli/releases/download/${CILIUM_CLI_VERSION}/cilium-linux-arm64.tar.gz{,.sha256sum}
+    sha256sum --check cilium-linux-arm64.tar.gz.sha256sum
+    tar xzvfC cilium-linux-arm64.tar.gz /usr/bin
+    rm cilium-linux-arm64.tar.gz{,.sha256sum}
+    HOME=/root cilium install \
+      --version $CILIUM_VERSION \
+      --set ipam.mode=kubernetes \
+      --set kubeProxyReplacement=true \
+      --set k8sServiceHost=${API_SERVER_IP} \
+      --set k8sServicePort=${API_SERVER_PORT} \
+      --set cni.exclusive=true \
+      --set operator.replicas=1 \
+      --set gatewayAPI.enabled=true
+    # Delete kube-proxy (full kube-proxy-free replacement)
+    kubectl -n kube-system delete daemonset kube-proxy --force --grace-period=0
+    kubectl -n kube-system delete configmap kube-proxy
     ;;
 esac
 
