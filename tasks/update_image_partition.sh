@@ -49,7 +49,7 @@ fi
 # Remote images are downloaded to / when LOCAL_IMAGE_PATH is empty, so the
 # following extraction procedure works for both local and remote cases.
 echo "Writing image $LOCAL_IMAGE_PATH/image.img.xz to image partition $IMAGE_DEV"
-unxz -v --stdout $LOCAL_IMAGE_PATH/image.img.xz | dd of=$IMAGE_DEV bs=100M
+unxz -v --stdout $LOCAL_IMAGE_PATH/image.img.xz | dd of=$IMAGE_DEV bs=1M conv=fsync
 echo "Re-formatting boot partition to make sure it's clean."
 umount $BOOT_DEV
 mkfs.vfat $BOOT_DEV

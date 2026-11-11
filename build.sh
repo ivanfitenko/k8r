@@ -81,23 +81,6 @@ for files in images/bootable_image.img images/image.img ; do
   fi
 done
 
-# FIXME: unused at the moment.
-# inject variables.cfg into images. No other actions will be done
-if [ "$MODE" = "inject-config" ] ; then
-  echo "Injecting variables into image images/image.img"
-  mount -o loop images/image.img /mnt
-  cp variables.cfg /mnt/usr/lib/k8r/variables.cfg
-  umount /mnt
-  echo "Injecting variables into image images/bootable_image.img"
-  LODEV=`losetup -P -f --show images/bootable_image.img`
-  mount ${LODEV}p1 /mnt
-  cp variables.cfg /mnt/usr/lib/k8r/variables.cfg
-  umount /mnt
-  losetup -d $LODEV
-  echo "Done injecting variables"
-  exit
-fi
-
 echo "Installing dependencies"
 export DEBIAN_FRONTEND=noninteractive
 apt -y update
@@ -168,8 +151,6 @@ if [ "$ADDITIONAL_SSH_PASSWORD_CONFIG" != "" ] ; then
   sed -i 's/^PasswordAuthentication.*//g' $ADDITIONAL_SSH_PASSWORD_CONFIG
 fi
 
-# FIXME: if the kernel gets updated by the script below (it shouldn't), then
-# FIXME: firmware updates will NOT be included into bootable_image.img
 echo "Running bootstrap script in chroot"
 chroot $K8R_IMAGE_MOUNT_DIR /bin/bash /usr/lib/k8r/tasks/bootstrap_image.sh
 
@@ -181,7 +162,12 @@ if [ "`mount | grep resolv.conf`" != "" ] ; then
 fi
 
 echo "Creating boot/firmware partition archive images/boot.tar.xz"
-tar -cJvf images/boot.tar.xz -C /mnt/boot .
+tar -cJvf images/boot.tar.xz -C $K8R_IMAGE_MOUNT_DIR/boot/firmware .
+
+# these were mounted inside prepare_image.sh. Should it be fixed?
+echo "Unmounting image directories"
+umount $K8R_IMAGE_MOUNT_DIR/boot/firmware
+umount $K8R_IMAGE_MOUNT_DIR
 
 echo "Dumping image partition to images/image.img for use in online upgrades."
 dd if=${DEVICEPART}2 of=images/image.img status=progress
@@ -202,8 +188,19 @@ e2label images/image.img ""
 echo "Compressing images/image.img to images/image.img.xz"
 xz -v -T0 images/image.img
 
+# WARNING: this code must always run AFTER image.img.xz, we don't want
+# the image of working partition image to contain itself
 echo "Injecting image.img.xz into bootable_image.img"
+mount ${DEVICEPART}2 $K8R_IMAGE_MOUNT_DIR
 cp images/image.img.xz $K8R_IMAGE_MOUNT_DIR/
+umount $K8R_IMAGE_MOUNT_DIR
 
 echo "Cleanup: detaching loop device $DEVICE"
 losetup -d $DEVICE
+
+echo "IMPORTANT: It is normal to see a couple of warnings from fsck about free"
+echo "IMPORTANT: inodes and block size count here. However, if you see many"
+echo "IMPORTANT: more of them, and with messages of higher severity, then you"
+echo "IMPORTANT: most likely produced a damaged or even unbootable image as"
+echo "IMPORTANT: images.img.xz. Try rebooting your build host for a clean build,"
+echo "IMPORTANT: check your local changes/additions, or file a bug."

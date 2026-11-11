@@ -27,14 +27,17 @@ TOKEN_TTL=0
 #with other prefixes on your local network.
 POD_NETWORK_CIDR="172.30.0.0/16"
 
-# CNI to use, "calico", "weave" of "flannel". Only calico seems to work out of 
-# the box for all uses. Flannel has issues that have not been resolved
-# yet and might not work for you. Weave net has changed its installation process
-# and is therefore broken now.
-CNI_TYPE="calico"
-#Use specific calico version (no "v" prefix).
+# Gateway api version to use
+GATEWAY_API_VERSION="1.6.1"
+# CNI to use, "calico" or "cilium". Default is cilium.
+CNI_TYPE="cilium"
+#Set specific calico version (no "v" prefix).
 #By default, v3.25.1 is used if the variable is not set.
 #CALICO_VERSION="3.25.1"
+#Set specific cilium version (no "v" prefix).
+#By default, v1.20.4 is used if the variable is not set.
+#CILIUM_VERSION="1.20.4"
+
 
 #A command for the nodes to join master. When a master node is bootstrapped,
 #it will be written to file /usr/lib/k8r/join_string . You need to set it as

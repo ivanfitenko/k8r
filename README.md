@@ -183,12 +183,15 @@ the cluster. Set to 0 to never expire. Example: `TOKEN_TTL="24h0m0s"`. Default i
 `POD_NETWORK_CIDR` - IP prefix for all pods in the Kubernetes cluster. This range
 should not overlap with other prefixes on your local network.
 
-`CNI_TYPE` - CNI to use, "calico", "weave" of "flannel". Only calico seems to
-work out of the box for all uses. Flannel has issues that have not been resolved
-yet and might not work for you. Weave net has changed its installation process
-and is therefore broken now.
+`CNI_TYPE` - CNI to use, "calico", "cilium". Cilium is the default. Since
+support for Gateway API (CNIs) is installed by default, cilium gateway is also
+auto-configured to support it, and kube-proxy is disabled. If you need to use
+kube-proxy, chose calico as your CNI.
 
-`CALICO_VERSION` - Use specific calico version (no "v" prefix). By default, 
+`CALICO_VERSION` - Use specific calico version (no "v" prefix). By default,
+v3.25.1 is used if the variable is not set.
+
+`CILIUM_VERSION` - Use specific cilium version (no "v" prefix). By default,
 v3.25.1 is used if the variable is not set.
 
 `KUBEADM_JOIN_STRING` - A command for the nodes to join master. When a master 
@@ -230,6 +233,9 @@ contain both image.img.xz and boot.tar.xz files.
 
 `set_reinstall_mode.sh` - restart and reinstall the node. Boot and root
 filesystems will be rewritten using an initial image, resulting in a fresh node.
+
+`set_rescue_mode.sh` - reboot into image partition for maintenance. On login,
+you will see instructions how to reboot back into normal system.
 
 #### NOT intended for use by an operator:
 `install-docker.sh`: convenience script to install docker into build containers.
